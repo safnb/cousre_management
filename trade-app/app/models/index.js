@@ -20,6 +20,8 @@ db.goodGroup = require("./user.model.js")(sequelize, Sequelize)
 db.goodGroup = require("./courses.model.js")(sequelize, Sequelize)
 db.CourseRegistration = require("./regist.model.js")(sequelize, Sequelize);
 db.Lesson = require("./lesson.model.js")(sequelize, Sequelize);
+db.Grade = require("./grade.model.js")(sequelize, Sequelize);
+
 
 require('./references.model.js')(db);
 
