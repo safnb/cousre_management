@@ -2,7 +2,7 @@ module.exports = {
   HOST: "postgresdb",  // Должно быть имя сервиса, а не IP
   USER: "trade-app",
   PASSWORD: "123456", 
-  DB: "docker-db",
+  DB: "docker_db",
   dialect: "postgres",
   port: 5432,          // Внутренний порт контейнера
   pool: {

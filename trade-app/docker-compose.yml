@@ -5,7 +5,7 @@ services:
     environment:
       - POSTGRES_USER=trade-app  
       - POSTGRES_PASSWORD=123456
-      - POSTGRES_DB=docker_db
+      - POSTGRES_DB=docker-db
     ports:
       - "5433:5432"
     volumes:
