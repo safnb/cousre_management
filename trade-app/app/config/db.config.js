@@ -1,14 +1,14 @@
 module.exports = {
-HOST: process.env.DB_HOST,
-USER: process.env.DB_USER,
-PASSWORD: process.env.DB_PASSWORD,
-DB: process.env.DB_NAME,
-port: process.env.DB_PORT,
-dialect: "postgres",
-pool: {
-max: 5,
-min: 0,
-acquire: 30000,
-idle: 10000
-}
+  HOST: "postgresdb",  // Должно быть имя сервиса, а не IP
+  USER: "trade-app",
+  PASSWORD: "123456", 
+  DB: "docker-db",
+  dialect: "postgres",
+  port: 5432,          // Внутренний порт контейнера
+  pool: {
+    max: 5,
+    min: 0,
+    acquire: 30000,
+    idle: 10000
+  }
 };

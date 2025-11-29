@@ -3,26 +3,33 @@ services:
     image: postgres:15-alpine
     restart: unless-stopped
     environment:
-      - POSTGRES_USER=postgres
+      - POSTGRES_USER=trade-app  
       - POSTGRES_PASSWORD=123456
-      - POSTGRES_DB=bezkoder_db
+      - POSTGRES_DB=docker_db
     ports:
       - "5433:5432"
     volumes:
       - db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U trade-app -d docker_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
 
   app:
     depends_on:
-      - postgresdb
+      postgresdb:
+        condition: service_healthy
     build: .
     restart: unless-stopped
     ports:
       - "6868:8080"
     environment:
       - DB_HOST=postgresdb
-      - DB_USER=postgres
+      - DB_USER=trade-app        
       - DB_PASSWORD=123456
-      - DB_NAME=bezkoder_db
+      - DB_NAME=docker_db
       - DB_PORT=5432
     stdin_open: true
     tty: true
