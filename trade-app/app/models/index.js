@@ -16,5 +16,12 @@ idle: dbConfig.pool.idle
 const db = {};
 db.Sequelize = Sequelize;
 db.sequelize = sequelize;
-db.goodGroup = require("./goods-group.model.js")(sequelize, Sequelize)
+db.goodGroup = require("./user.model.js")(sequelize, Sequelize)
+db.goodGroup = require("./courses.model.js")(sequelize, Sequelize)
+
+
+
+require('./references.model.js')(db);
+
+
 module.exports = db;
