@@ -25,24 +25,8 @@ app.get("/", (req, res) => {
 const db = require("./app/models");
 
 // Проверка подключения и синхронизация БД
-async function initializeDatabase() {
-  try {
-    console.log("Waiting 5 seconds for database to be ready...");
-    // Ждем 5 секунд чтобы БД успела запуститься
-    await new Promise(resolve => setTimeout(resolve, 5000));
-    
-    // Проверка подключения к БД
-    await db.sequelize.authenticate();
-    console.log("Database connection has been established successfully.");
-    
-    // Синхронизация моделей с БД (создание таблиц)
-    await db.sequelize.sync({ force: false, alter: true });
-    console.log("Database synchronized successfully. Tables should be created.");
-    
-  } catch (error) {
-    console.error("Unable to connect to the database:", error.message);
-  }
-}// Инициализация базы данных
+
+// Инициализация базы данных
 initializeDatabase();
 
 // Добавляем маршруты
