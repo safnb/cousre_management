@@ -1,6 +1,9 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const cors = require("cors");
+const swaggerUi = require("swagger-ui-express");
+const swaggerJsdoc = require("swagger-jsdoc");
+require("dotenv").config();
 
 const app = express();
 
@@ -15,6 +18,25 @@ app.use(express.json());
 
 // parse requests of content-type - application/x-www-form-urlencoded
 app.use(express.urlencoded({ extended: true }));
+
+const swaggerOptions = {
+  definition: {
+    openapi: "3.0.0",
+    info: {
+      title: "Course Management API",
+      version: "1.0.0",
+      description: "Документация API для проекта управления курсами"
+    },
+    servers: [
+      {
+        url: "http://localhost:8080"
+      }
+    ]
+  },
+  apis: ["./app/routes/*.js"]
+};
+const swaggerSpec = swaggerJsdoc(swaggerOptions);
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // simple route
 app.get("/", (req, res) => {
@@ -51,8 +73,6 @@ require("./app/routes/course.routes.js")(app);
 require("./app/routes/regist.routes.js")(app);
 require("./app/routes/lesson.routes.js")(app);
 require("./app/routes/grade.routes.js")(app);
-
-require("dotenv").config();
 
 // set port, listen for requests
 const PORT = process.env.PORT || 8080;
