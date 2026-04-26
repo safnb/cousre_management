@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Мои записи | Course Management</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h2>📝 Мои записи на курсы</h2>
+    <p class="welcome-text">Ваши заявки и активные записи</p>
+
+    <div id="registrationsList"></div>
+
+    <button class="back-btn" onclick="window.location.href='home.html'" style="margin-top:20px;">
+      ← На главную
+    </button>
+  </div>
+
+  <script src="api.js"></script>
+  <script>
+    const token = localStorage.getItem("token");
+    const userId = localStorage.getItem("userId");
+    if (!token) window.location.href = "login.html";
+
+    async function loadRegistrations() {
+      const list = document.getElementById("registrationsList");
+      try {
+        const registrations = await getStudentRegistrations(userId, token);
+        
+        if (!registrations || registrations.length === 0) {
+          list.innerHTML = `
+            <div class="empty-state">
+              <span class="empty-icon">📭</span>
+              <h3>У вас нет записей на курсы</h3>
+              <p>Все ваши заявки на курсы будут отображаться здесь</p>
+            </div>`;
+          return;
+        }
+
+        list.innerHTML = `
+          <p style="margin-bottom:15px;color:var(--gray);">Всего записей: <strong>${registrations.length}</strong></p>
+          ${registrations.map(reg => {
+            const status = reg.статус || reg.Статус || '';
+            const statusLower = status.toLowerCase();
+            let badgeClass = 'badge-warning';
+            let statusLabel = '⏳ В обработке';
+            if (statusLower === 'approved' || statusLower === 'одобрено') { badgeClass = 'badge-success'; statusLabel = '✅ Одобрено'; }
+            if (statusLower === 'rejected' || statusLower === 'отклонено') { badgeClass = 'badge-danger'; statusLabel = '❌ Отклонено'; }
+            
+            const date = reg.Дата_записи || reg.дата_записи;
+            const formattedDate = date ? new Date(date).toLocaleDateString('ru-RU', {
+              day: 'numeric', month: 'long', year: 'numeric'
+            }) : '—';
+            
+            return `
+              <div class="reg-card">
+                <strong style="font-size:16px;">📋 Заявка #${reg.i_d_заявка || reg.ID_заявка || '—'}</strong>
+                <div style="margin:10px 0;font-size:14px;color:#636E72;">
+                  <p style="margin:3px 0;">📖 Курс ID: ${reg.i_d_курса || reg.ID_курса || '—'}</p>
+                  <p style="margin:3px 0;">📅 Дата записи: ${formattedDate}</p>
+                </div>
+                <span class="badge ${badgeClass}">${statusLabel}</span>
+              </div>
+            `;
+          }).join('')}
+        `;
+      } catch (err) {
+        list.innerHTML = `<div class="empty-state"><span class="empty-icon">⚠️</span><h3>Ошибка</h3><p>Не удалось загрузить записи</p></div>`;
+      }
+    }
+    loadRegistrations();
+  </script>
+</body>
+</html>

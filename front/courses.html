@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Мои курсы | Course Management</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .course-card {
+      position: relative;
+    }
+    .enroll-btn {
+      width: auto !important;
+      padding: 10px 24px !important;
+      font-size: 14px !important;
+      margin-top: 12px;
+      background: linear-gradient(135deg, #00b894, #00C9A7) !important;
+    }
+    .enroll-btn:hover {
+      box-shadow: 0 8px 25px rgba(0, 201, 167, 0.4) !important;
+    }
+    .enroll-btn.enrolled {
+      background: #B2BEC3 !important;
+      cursor: default;
+      pointer-events: none;
+    }
+    .tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 25px;
+      background: #F0F2F5;
+      border-radius: 14px;
+      padding: 5px;
+    }
+    .tab {
+      flex: 1;
+      padding: 12px;
+      text-align: center;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 500;
+      font-size: 14px;
+      transition: all 0.3s ease;
+      background: transparent;
+      color: #636E72;
+    }
+    .tab.active {
+      background: white;
+      color: #6C63FF;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.05);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>📖 Курсы</h2>
+    <p class="welcome-text">Управление вашими курсами</p>
+
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('my')">Мои курсы</div>
+      <div class="tab" onclick="switchTab('all')">Все курсы</div>
+    </div>
+
+    <div id="coursesList"></div>
+
+    <button class="back-btn" onclick="window.location.href='home.html'" style="margin-top:20px;">
+      ← На главную
+    </button>
+  </div>
+
+  <script src="api.js"></script>
+  <script>
+    const token = localStorage.getItem("token");
+    const userId = localStorage.getItem("userId");
+    if (!token) window.location.href = "login.html";
+
+    let currentTab = 'my';
+    let myCourses = [];
+    let allCourses = [];
+    let myRegistrations = [];
+
+    function showToast(message, type = 'success') {
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+    }
+
+    function switchTab(tab) {
+      currentTab = tab;
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      event.target.classList.add('active');
+      renderCourses();
+    }
+
+    async function loadData() {
+      const list = document.getElementById("coursesList");
+      list.innerHTML = '<div class="empty-state"><div class="spinner" style="border-color:#E0E0E0;border-top-color:#6C63FF;width:40px;height:40px;"></div><p style="margin-top:15px;">Загрузка...</p></div>';
+
+      try {
+        // Загружаем все курсы
+        const allRes = await fetch(`${BASE_URL}/api/courses`);
+        allCourses = await allRes.json() || [];
+
+        // Загружаем записи студента
+        const regRes = await fetch(`${BASE_URL}/api/registrations`);
+        const allRegs = await regRes.json() || [];
+        myRegistrations = allRegs.filter(r => r.ID_студента == userId || r.i_d_студента == userId);
+
+        // Мои курсы
+        const myCourseIds = myRegistrations.map(r => r.ID_курса || r.i_d_курса);
+        myCourses = allCourses.filter(c => myCourseIds.includes(c.ID_курса || c.i_d_курса));
+
+        renderCourses();
+      } catch (err) {
+        list.innerHTML = '<div class="empty-state"><span class="empty-icon">⚠️</span><h3>Ошибка</h3><p>Не удалось загрузить курсы</p></div>';
+      }
+    }
+
+    async function enrollCourse(courseId) {
+      try {
+        const res = await fetch(`${BASE_URL}/api/registrations`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            Дата_записи: new Date().toISOString(),
+            Статус: "Одобрено",
+            ID_курса: courseId,
+            ID_студента: parseInt(userId)
+          })
+        });
+
+        if (res.ok) {
+          showToast('✅ Вы записаны на курс!', 'success');
+          loadData(); // Перезагружаем данные
+        } else {
+          const err = await res.json();
+          showToast('❌ ' + (err.message || 'Ошибка записи'), 'error');
+        }
+      } catch (err) {
+        showToast('❌ Ошибка сервера', 'error');
+      }
+    }
+
+    function renderCourses() {
+      const list = document.getElementById("coursesList");
+      const courses = currentTab === 'my' ? myCourses : allCourses;
+      const enrolledIds = myCourses.map(c => c.ID_курса || c.i_d_курса);
+
+      if (!courses || courses.length === 0) {
+        list.innerHTML = `
+          <div class="empty-state">
+            <span class="empty-icon">📭</span>
+            <h3>${currentTab === 'my' ? 'Вы не записаны на курсы' : 'Нет доступных курсов'}</h3>
+            <p>${currentTab === 'my' ? 'Перейдите на вкладку "Все курсы" чтобы записаться' : 'Курсы пока не добавлены'}</p>
+            ${currentTab === 'my' ? '<button onclick="switchTab(\'all\')" style="margin-top:15px;width:auto;display:inline-block;">📚 Смотреть все курсы</button>' : ''}
+          </div>`;
+        return;
+      }
+
+      list.innerHTML = `
+        <p style="margin-bottom:15px;color:var(--gray);">Найдено: <strong>${courses.length}</strong></p>
+        ${courses.map(course => {
+          const courseId = course.ID_курса || course.i_d_курса;
+          const isEnrolled = enrolledIds.includes(courseId);
+          
+          return `
+            <div class="course-card">
+              <div class="course-title">📚 ${course.Название || course.название || 'Без названия'}</div>
+              <div class="course-desc">${course.Описание || course.описание || 'Описание отсутствует'}</div>
+              <div class="info-tags">
+                <span class="info-tag">🆔 ID: ${courseId}</span>
+                <span class="badge ${isEnrolled ? 'badge-success' : 'badge-info'}">
+                  ${isEnrolled ? '✅ Записан' : '📝 Доступен'}
+                </span>
+              </div>
+              ${!isEnrolled ? 
+                `<button class="enroll-btn" onclick="enrollCourse(${courseId})">📝 Записаться</button>` :
+                `<button class="enroll-btn enrolled">✅ Вы записаны</button>`
+              }
+            </div>
+          `;
+        }).join('')}
+      `;
+    }
+
+    // Переопределяем switchTab для правильного this
+    document.querySelectorAll('.tab').forEach((tab, i) => {
+      tab.onclick = function() {
+        currentTab = i === 0 ? 'my' : 'all';
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        this.classList.add('active');
+        renderCourses();
+      };
+    });
+
+    loadData();
+  </script>
+</body>
+</html>

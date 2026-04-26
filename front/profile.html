@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Профиль | Course Management</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h2>👤 Профиль</h2>
+    <p class="welcome-text">Ваши личные данные</p>
+
+    <div id="profileContent"></div>
+
+    <button class="back-btn" id="backBtn" style="margin-top:20px;">
+      ← Назад
+    </button>
+  </div>
+
+  <script src="api.js"></script>
+  <script>
+    const token = localStorage.getItem("token");
+    const userId = localStorage.getItem("userId");
+    const userRole = localStorage.getItem("userRole");
+    
+    if (!token) window.location.href = "login.html";
+
+    // Определяем куда возвращаться
+    let backPage = 'home.html';
+    if (userRole === 'teacher') backPage = 'teacher.html';
+    if (userRole === 'admin') backPage = 'admin.html';
+    document.getElementById("backBtn").onclick = function() {
+      window.location.href = backPage;
+    };
+
+    // Иконка по роли
+    const roleIcon = userRole === 'admin' ? '👑' : userRole === 'teacher' ? '👩‍🏫' : '👨‍🎓';
+    const roleColor = userRole === 'admin' ? 'linear-gradient(135deg, #f39c12, #e67e22)' : 
+                      userRole === 'teacher' ? 'linear-gradient(135deg, #FF6584, #e84393)' : 
+                      'linear-gradient(135deg, #6C63FF, #a29bfe)';
+    const roleLabel = userRole === 'admin' ? 'Администратор' : userRole === 'teacher' ? 'Преподаватель' : 'Студент';
+
+    async function loadProfile() {
+      const content = document.getElementById("profileContent");
+      try {
+        const res = await fetch(`${BASE_URL}/api/users/${userId}`, {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        if (!res.ok) throw new Error('Failed');
+        const user = await res.json();
+        
+        const initials = user.ФИО ? user.ФИО.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : '?';
+        const birthDate = user.Дата_Рождения ? new Date(user.Дата_Рождения).toLocaleDateString('ru-RU', {
+          day: 'numeric', month: 'long', year: 'numeric'
+        }) : 'Не указана';
+        
+        // Считаем возраст
+        let age = '—';
+        if (user.Дата_Рождения) {
+          const today = new Date();
+          const birth = new Date(user.Дата_Рождения);
+          age = today.getFullYear() - birth.getFullYear();
+          const m = today.getMonth() - birth.getMonth();
+          if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+          age += ' лет';
+        }
+        
+        content.innerHTML = `
+          <div class="profile-header">
+            <div class="profile-avatar" style="background:${roleColor};">${initials}</div>
+            <h3 style="margin:0;font-size:22px;">${user.ФИО || 'Не указано'}</h3>
+            <p style="color:#636E72;font-size:15px;">${user.email || ''}</p>
+            <span class="badge" style="margin-top:8px;background:${userRole === 'admin' ? '#FDEBD0' : userRole === 'teacher' ? '#FFEBF0' : '#D5F5E3'};color:${userRole === 'admin' ? '#e67e22' : userRole === 'teacher' ? '#e84393' : '#00b894'};">${roleIcon} ${roleLabel}</span>
+          </div>
+          
+          <div class="info-card">
+            <div class="info-row">
+              <span class="info-label">🆔 ID</span>
+              <span class="info-value">${user.ID_студента || user.i_d_студента || '—'}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">🏫 Класс</span>
+              <span class="info-value">${user.Класс || user.класс || '—'}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">📱 Телефон</span>
+              <span class="info-value">${user.Телефон || user.телефон || '—'}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">🎂 Дата рождения</span>
+              <span class="info-value">${birthDate}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">🎈 Возраст</span>
+              <span class="info-value">${age}</span>
+            </div>
+          </div>
+        `;
+      } catch (err) {
+        content.innerHTML = `<div class="empty-state"><span class="empty-icon">⚠️</span><h3>Ошибка</h3><p>Не удалось загрузить профиль</p></div>`;
+      }
+    }
+    loadProfile();
+  </script>
+</body>
+</html>

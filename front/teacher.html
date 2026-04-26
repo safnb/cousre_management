@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Кабинет преподавателя | Course Management</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .stats-grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+    
+    .nav-grid-5 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      margin: 30px 0;
+    }
+    
+    @media (max-width: 768px) {
+      .stats-grid-3,
+      .nav-grid-5 {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .stats-grid-3,
+      .nav-grid-5 {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>👩‍🏫 Кабинет преподавателя</h2>
+    <p class="welcome-text">Управление курсами и студентами</p>
+
+    <div class="user-info">
+      <div class="user-avatar" id="avatar" style="background:linear-gradient(135deg, #FF6584, #e84393);">👩‍🏫</div>
+      <div class="user-details">
+        <h3 id="userName">Преподаватель</h3>
+        <p id="userEmail">email@example.com</p>
+        <p style="margin-top:5px;font-size:13px;color:#e84393;">👩‍🏫 Преподаватель</p>
+      </div>
+    </div>
+
+    <!-- 3 карточки статистики -->
+    <div class="stats-grid-3">
+      <div class="stat-card purple" onclick="navigateTo('teacher-courses.html')">
+        <div class="stat-number" id="coursesCount">—</div>
+        <div class="stat-label">Моих курсов</div>
+      </div>
+      <div class="stat-card pink" onclick="navigateTo('teacher-lessons.html')">
+        <div class="stat-number" id="lessonsCount">—</div>
+        <div class="stat-label">Занятий</div>
+      </div>
+      <div class="stat-card green" onclick="navigateTo('teacher-students.html')">
+        <div class="stat-number" id="studentsCount">—</div>
+        <div class="stat-label">Студентов</div>
+      </div>
+    </div>
+
+    <!-- 5 карточек меню -->
+    <div class="nav-grid-5">
+      <div class="nav-card courses" onclick="navigateTo('teacher-courses.html')">
+        <span class="nav-icon">📚</span>
+        <div class="nav-label">Мои курсы</div>
+        <div class="nav-sublabel">Создать / управлять</div>
+      </div>
+      <div class="nav-card lessons" onclick="navigateTo('teacher-lessons.html')">
+        <span class="nav-icon">📅</span>
+        <div class="nav-label">Занятия</div>
+        <div class="nav-sublabel">Добавить расписание</div>
+      </div>
+      <div class="nav-card grades" onclick="navigateTo('teacher-grades.html')">
+        <span class="nav-icon">⭐</span>
+        <div class="nav-label">Оценки</div>
+        <div class="nav-sublabel">Выставить оценки</div>
+      </div>
+      <div class="nav-card schedule" onclick="navigateTo('teacher-students.html')">
+        <span class="nav-icon">👥</span>
+        <div class="nav-label">Студенты</div>
+        <div class="nav-sublabel">Список студентов</div>
+      </div>
+      <div class="nav-card profile" onclick="navigateTo('profile.html')">
+        <span class="nav-icon">👤</span>
+        <div class="nav-label">Профиль</div>
+        <div class="nav-sublabel">Мои данные</div>
+      </div>
+    </div>
+
+    <button class="logout" onclick="logout()">
+      🚪 Выйти из аккаунта
+    </button>
+  </div>
+
+  <script src="api.js"></script>
+  <script>
+    const token = localStorage.getItem("token");
+    const userId = localStorage.getItem("userId");
+    const userRole = localStorage.getItem("userRole");
+
+    if (!token || userRole !== 'teacher') {
+      window.location.href = "login.html";
+    }
+
+    function navigateTo(page) {
+      window.location.href = page;
+    }
+
+    async function loadDashboard() {
+      try {
+        const userRes = await fetch(`${BASE_URL}/api/users/${userId}`, {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        if (userRes.ok) {
+          const user = await userRes.json();
+          document.getElementById("userName").textContent = user.ФИО || 'Преподаватель';
+          document.getElementById("userEmail").textContent = user.email || '';
+          if (user.ФИО) {
+            const initials = user.ФИО.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+            document.getElementById("avatar").textContent = initials || '👩‍🏫';
+          }
+        }
+
+        const coursesRes = await fetch(`${BASE_URL}/api/courses`);
+        const allCourses = await coursesRes.json();
+        const myCourses = allCourses.filter(c => c.ID_студента == userId);
+        document.getElementById("coursesCount").textContent = myCourses.length;
+
+        const lessonsRes = await fetch(`${BASE_URL}/api/lessons`);
+        const allLessons = await lessonsRes.json();
+        const myLessons = allLessons.filter(l => l.ID_студента == userId);
+        document.getElementById("lessonsCount").textContent = myLessons.length;
+
+        const regRes = await fetch(`${BASE_URL}/api/registrations`);
+        const allRegs = await regRes.json();
+        const myCourseIds = myCourses.map(c => c.ID_курса);
+        const myStudents = allRegs.filter(r => myCourseIds.includes(r.ID_курса));
+        const uniqueStudents = [...new Set(myStudents.map(s => s.ID_студента))];
+        document.getElementById("studentsCount").textContent = uniqueStudents.length;
+
+      } catch (err) {
+        console.log('Error:', err);
+      }
+    }
+
+    loadDashboard();
+
+    function logout() {
+      localStorage.removeItem("token");
+      localStorage.removeItem("userId");
+      localStorage.removeItem("userRole");
+      window.location.href = "login.html";
+    }
+  </script>
+</body>
+</html>

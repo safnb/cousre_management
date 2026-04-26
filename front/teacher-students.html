@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Студенты | Преподаватель</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h2>👥 Мои студенты</h2>
+    <p class="welcome-text">Студенты, записанные на ваши курсы</p>
+    <div id="studentsList"></div>
+    <button class="back-btn" onclick="window.location.href='teacher.html'" style="margin-top:20px;">← В кабинет</button>
+  </div>
+
+  <script src="api.js"></script>
+  <script>
+    const token = localStorage.getItem("token");
+    const userId = localStorage.getItem("userId");
+    if (!token || localStorage.getItem("userRole") !== 'teacher') window.location.href = "login.html";
+
+    async function loadStudents() {
+      const list = document.getElementById("studentsList");
+      try {
+        const [coursesRes, regRes, usersRes] = await Promise.all([
+          fetch(`${BASE_URL}/api/courses`),
+          fetch(`${BASE_URL}/api/registrations`),
+          fetch(`${BASE_URL}/api/users`)
+        ]);
+        
+        const allCourses = await coursesRes.json();
+        const allRegs = await regRes.json();
+        const allUsers = await usersRes.json();
+
+        const myCourseIds = allCourses.filter(c => c.ID_студента == userId).map(c => c.ID_курса);
+        const myStudentIds = [...new Set(allRegs.filter(r => myCourseIds.includes(r.ID_курса)).map(r => r.ID_студента))];
+        const myStudents = allUsers.filter(u => myStudentIds.includes(u.ID_студента));
+
+        if (myStudents.length === 0) {
+          list.innerHTML = '<div class="empty-state"><span class="empty-icon">👥</span><h3>Нет студентов</h3><p>Студенты пока не записались</p></div>';
+          return;
+        }
+
+        list.innerHTML = myStudents.map(s => `
+          <div class="course-card" style="border-left-color:#74B9FF;">
+            <div class="course-title">👤 ${s.ФИО}</div>
+            <div class="course-desc">📧 ${s.email} | 🏫 ${s.Класс} класс | 📱 ${s.Телефон}</div>
+            <span class="badge badge-info">Студент</span>
+          </div>
+        `).join('');
+      } catch (e) {
+        list.innerHTML = '<div class="empty-state"><span class="empty-icon">⚠️</span><h3>Ошибка</h3></div>';
+      }
+    }
+
+    loadStudents();
+  </script>
+</body>
+</html>

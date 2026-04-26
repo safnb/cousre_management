@@ -1,23 +1,29 @@
 const db = require("../models");
 const User = db.User;
 const Op = db.Sequelize.Op;
+const bcrypt = require("bcrypt");
 
 // Create and Save a new User
 exports.create = (req, res) => {
   // Validate request
-  if (!req.body.ФИО) {
+  if (!req.body.ФИО || !req.body.email || !req.body.password) {
     res.status(400).send({
-      message: "ФИО cannot be empty!"
+      message: "ФИО, email и password cannot be empty!"
     });
     return;
   }
 
   // Create a User
+  const hashedPassword = bcrypt.hashSync(req.body.password, 8);
+
   const user = {
     ФИО: req.body.ФИО,
+    email: req.body.email,
+    password: hashedPassword,
     Дата_Рождения: req.body.Дата_Рождения,
     Класс: req.body.Класс,
-    Телефон: req.body.Телефон
+    Телефон: req.body.Телефон,
+    Роль: req.body.Роль || 'student'
   };
 
   // Save User in the database

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Занятия | Преподаватель</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h2>📅 Управление занятиями</h2>
+    <p class="welcome-text">Добавление занятий к вашим курсам</p>
+
+    <div style="background:#F8F9FA;border-radius:18px;padding:25px;margin-bottom:25px;">
+      <h3 style="margin-bottom:15px;">➕ Новое занятие</h3>
+      <div class="input-group"><input id="lessonTopic" type="text" placeholder="Тема занятия" style="padding-left:16px;"></div>
+      <div class="input-group"><input id="lessonDate" type="datetime-local" style="padding-left:16px;"></div>
+      <div class="input-group">
+        <select id="lessonCourse" style="width:100%;padding:14px 16px;border:2px solid #E0E0E0;border-radius:12px;font-family:'Poppins',sans-serif;">
+          <option value="">Выберите курс</option>
+        </select>
+      </div>
+      <button onclick="createLesson()" id="createBtn" style="background:linear-gradient(135deg, #00b894, #00C9A7);">Создать занятие</button>
+    </div>
+
+    <div id="lessonsList"></div>
+    <button class="back-btn" onclick="window.location.href='teacher.html'" style="margin-top:20px;">← В кабинет</button>
+  </div>
+
+  <script src="api.js"></script>
+  <script>
+    const token = localStorage.getItem("token");
+    const userId = localStorage.getItem("userId");
+    if (!token || localStorage.getItem("userRole") !== 'teacher') window.location.href = "login.html";
+
+    function showToast(msg, type) {
+      const t = document.createElement('div');
+      t.className = `toast ${type}`;
+      t.textContent = msg;
+      document.body.appendChild(t);
+      setTimeout(() => t.remove(), 3000);
+    }
+
+    async function loadCourses() {
+      const res = await fetch(`${BASE_URL}/api/courses`);
+      const all = await res.json();
+      const my = all.filter(c => c.ID_студента == userId);
+      const sel = document.getElementById("lessonCourse");
+      sel.innerHTML = '<option value="">Выберите курс</option>' + my.map(c => `<option value="${c.ID_курса}">${c.Название}</option>`).join('');
+    }
+
+    async function createLesson() {
+      const topic = document.getElementById("lessonTopic").value.trim();
+      const date = document.getElementById("lessonDate").value;
+      const courseId = document.getElementById("lessonCourse").value;
+      if (!topic || !date || !courseId) { showToast('Заполните все поля', 'error'); return; }
+
+      try {
+        const res = await fetch(`${BASE_URL}/api/lessons`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ Тема: topic, Дата_и_время: date, ID_студента: parseInt(userId), ID_курса: parseInt(courseId) })
+        });
+        if (res.ok) {
+          showToast('✅ Занятие создано!', 'success');
+          document.getElementById("lessonTopic").value = '';
+          document.getElementById("lessonDate").value = '';
+          loadLessons();
+        } else {
+          const err = await res.json();
+          showToast('❌ ' + (err.message || 'Ошибка'), 'error');
+        }
+      } catch (e) { showToast('❌ Ошибка сервера', 'error'); }
+    }
+
+    async function loadLessons() {
+      const list = document.getElementById("lessonsList");
+      const res = await fetch(`${BASE_URL}/api/lessons`);
+      const all = await res.json();
+      const my = all.filter(l => l.ID_студента == userId);
+      
+      if (my.length === 0) {
+        list.innerHTML = '<div class="empty-state"><span class="empty-icon">📅</span><h3>Нет занятий</h3></div>';
+        return;
+      }
+
+      list.innerHTML = my.map(l => `
+        <div class="lesson-card">
+          <div class="lesson-topic">📌 ${l.Тема || 'Без темы'}</div>
+          <div class="lesson-date">🕐 ${new Date(l.Дата_и_время).toLocaleString('ru-RU')}</div>
+          <div class="info-tags">
+            <span class="info-tag">📖 Курс ID: ${l.ID_курса}</span>
+            <span class="info-tag">🔢 Занятие ID: ${l.ID_занятия}</span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    loadCourses();
+    loadLessons();
+  </script>
+</body>
+</html>

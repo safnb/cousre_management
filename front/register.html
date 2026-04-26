@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Регистрация | Course Management</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    input[type="date"] {
+      color: #2D3436;
+      font-family: 'Poppins', sans-serif;
+    }
+    input[type="date"]::-webkit-calendar-picker-indicator {
+      cursor: pointer;
+      filter: invert(0.5);
+    }
+    .role-selector {
+      display: flex;
+      gap: 15px;
+      margin-bottom: 22px;
+    }
+    .role-card {
+      flex: 1;
+      padding: 20px;
+      border: 2px solid #E0E0E0;
+      border-radius: 14px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      background: white;
+    }
+    .role-card:hover {
+      border-color: #6C63FF;
+      transform: translateY(-2px);
+    }
+    .role-card.selected {
+      border-color: #6C63FF;
+      background: #F4F3FF;
+      box-shadow: 0 0 0 4px rgba(108,99,255,0.1);
+    }
+    .role-card .role-icon {
+      font-size: 40px;
+      display: block;
+      margin-bottom: 10px;
+    }
+    .role-card .role-label {
+      font-weight: 600;
+      font-size: 14px;
+      color: #2D3436;
+    }
+    .role-card .role-desc {
+      font-size: 11px;
+      color: #B2BEC3;
+      margin-top: 4px;
+    }
+    #teacherFields {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Регистрация</h2>
+    <p class="welcome-text">Создайте новый аккаунт</p>
+
+    <!-- Выбор роли -->
+    <div class="role-selector">
+      <div class="role-card selected" onclick="selectRole('student')" id="studentCard">
+        <span class="role-icon">👨‍🎓</span>
+        <div class="role-label">Студент</div>
+        <div class="role-desc">Учусь на курсах</div>
+      </div>
+      <div class="role-card" onclick="selectRole('teacher')" id="teacherCard">
+        <span class="role-icon">👩‍🏫</span>
+        <div class="role-label">Преподаватель</div>
+        <div class="role-desc">Веду курсы</div>
+      </div>
+    </div>
+
+    <div class="input-group">
+      <span class="icon">👤</span>
+      <input id="fio" type="text" placeholder="ФИО" autocomplete="off">
+    </div>
+
+    <div class="input-group">
+      <span class="icon">✉️</span>
+      <input id="email" type="email" placeholder="Email" autocomplete="off">
+    </div>
+
+    <div class="input-group">
+      <span class="icon">🔒</span>
+      <input id="password" type="password" placeholder="Пароль" autocomplete="off">
+    </div>
+
+    <div class="input-group">
+      <span class="icon">🎂</span>
+      <input id="birthdate" type="date" placeholder="Дата рождения">
+    </div>
+
+    <!-- Поля для студента -->
+    <div id="studentFields">
+      <div class="input-group">
+        <span class="icon">🏫</span>
+        <input id="class" type="number" placeholder="Класс (1-11)" min="1" max="11" autocomplete="off">
+      </div>
+    </div>
+
+    <!-- Поля для преподавателя -->
+    <div id="teacherFields">
+      <div class="input-group">
+        <span class="icon">📚</span>
+        <input id="subject" type="text" placeholder="Предмет (например: Математика)" autocomplete="off">
+      </div>
+    </div>
+
+    <div class="input-group">
+      <span class="icon">📱</span>
+      <input id="phone" type="tel" placeholder="Телефон (10 цифр)" pattern="[0-9]{10}" autocomplete="off">
+    </div>
+
+    <button onclick="handleRegister()" id="regBtn">
+      <span id="btnText">Зарегистрироваться</span>
+    </button>
+
+    <p>Уже есть аккаунт? <a href="login.html">Войти</a></p>
+  </div>
+
+  <script src="api.js"></script>
+  <script>
+    let selectedRole = 'student';
+
+    function selectRole(role) {
+      selectedRole = role;
+      document.getElementById('studentCard').classList.remove('selected');
+      document.getElementById('teacherCard').classList.remove('selected');
+      
+      if (role === 'student') {
+        document.getElementById('studentCard').classList.add('selected');
+        document.getElementById('studentFields').style.display = 'block';
+        document.getElementById('teacherFields').style.display = 'none';
+      } else {
+        document.getElementById('teacherCard').classList.add('selected');
+        document.getElementById('studentFields').style.display = 'none';
+        document.getElementById('teacherFields').style.display = 'block';
+      }
+    }
+
+    function showToast(message, type = 'success') {
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+    }
+
+    async function handleRegister() {
+      const fio = document.getElementById("fio").value.trim();
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value.trim();
+      const birthdate = document.getElementById("birthdate").value;
+      const phone = document.getElementById("phone").value.trim();
+      const btn = document.getElementById("regBtn");
+      const btnText = document.getElementById("btnText");
+
+      // Базовые проверки
+      if (!fio || !email || !password || !birthdate || !phone) {
+        showToast('Заполните все поля', 'error');
+        return;
+      }
+      if (password.length < 6) {
+        showToast('Пароль минимум 6 символов', 'error');
+        return;
+      }
+      if (phone.length !== 10) {
+        showToast('Телефон должен быть 10 цифр', 'error');
+        return;
+      }
+
+      // Собираем данные
+      const user = {
+        ФИО: fio,
+        email: email,
+        password: password,
+        Дата_Рождения: birthdate,
+        Телефон: phone,
+        Роль: selectedRole
+      };
+
+      if (selectedRole === 'student') {
+        const className = document.getElementById("class").value.trim();
+        if (!className) {
+          showToast('Укажите класс', 'error');
+          return;
+        }
+        user.Класс = parseInt(className);
+      } else {
+        // Для преподавателя класс по умолчанию
+        user.Класс = 0;
+      }
+
+      btnText.innerHTML = '<div class="spinner"></div>';
+      btn.disabled = true;
+
+      try {
+        const result = await register(user);
+        showToast('✅ Регистрация успешна!', 'success');
+        setTimeout(() => { 
+          window.location.href = "login.html"; 
+        }, 1500);
+      } catch (err) {
+        showToast('❌ Ошибка регистрации: ' + (err.message || ''), 'error');
+      } finally {
+        btnText.textContent = 'Зарегистрироваться';
+        btn.disabled = false;
+      }
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') handleRegister();
+    });
+  </script>
+</body>
+</html>

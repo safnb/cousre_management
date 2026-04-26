@@ -1,5 +1,5 @@
 const express = require("express");
-const bodyParser = require("body-parser");
+// const bodyParser = require("body-parser");
 const cors = require("cors");
 const swaggerUi = require("swagger-ui-express");
 const swaggerJsdoc = require("swagger-jsdoc");
@@ -8,7 +8,7 @@ require("dotenv").config();
 const app = express();
 
 var corsOptions = {
-  origin: "http://localhost:8081"
+  origin: "*"
 };
 
 app.use(cors(corsOptions));
@@ -73,6 +73,7 @@ require("./app/routes/course.routes.js")(app);
 require("./app/routes/regist.routes.js")(app);
 require("./app/routes/lesson.routes.js")(app);
 require("./app/routes/grade.routes.js")(app);
+require("./app/routes/auth.routes")(app);
 
 // set port, listen for requests
 const PORT = process.env.PORT || 8080;

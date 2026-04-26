@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Панель администратора | Course Management</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .admin-badge {
+      background: linear-gradient(135deg, #f39c12, #e67e22);
+      color: white;
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      display: inline-block;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>👑 Панель администратора</h2>
+    <p class="welcome-text">Полное управление системой</p>
+
+    <div class="user-info">
+      <div class="user-avatar" id="avatar" style="background:linear-gradient(135deg, #f39c12, #e67e22);">👑</div>
+      <div class="user-details">
+        <h3 id="userName">Администратор</h3>
+        <p id="userEmail">admin@example.com</p>
+        <p style="margin-top:5px;"><span class="admin-badge">👑 Администратор</span></p>
+      </div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card purple">
+        <div class="stat-number" id="totalUsers">—</div>
+        <div class="stat-label">Пользователей</div>
+      </div>
+      <div class="stat-card pink">
+        <div class="stat-number" id="totalTeachers">—</div>
+        <div class="stat-label">Преподавателей</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-number" id="totalCourses">—</div>
+        <div class="stat-label">Курсов</div>
+      </div>
+      <div class="stat-card orange">
+        <div class="stat-number" id="totalStudents">—</div>
+        <div class="stat-label">Студентов</div>
+      </div>
+    </div>
+
+    <div class="nav-grid">
+      <div class="nav-card courses" onclick="navigateTo('admin-users.html')">
+        <span class="nav-icon">👥</span>
+        <div class="nav-label">Пользователи</div>
+        <div class="nav-sublabel">Управление аккаунтами</div>
+      </div>
+      <div class="nav-card lessons" onclick="navigateTo('admin-courses.html')">
+        <span class="nav-icon">📚</span>
+        <div class="nav-label">Все курсы</div>
+        <div class="nav-sublabel">Управление курсами</div>
+      </div>
+      <div class="nav-card grades">
+        <span class="nav-icon">📝</span>
+        <div class="nav-label">Заявки</div>
+        <div class="nav-sublabel">Утверждение записей</div>
+      </div>
+      <div class="nav-card profile" onclick="navigateTo('profile.html')">
+        <span class="nav-icon">👤</span>
+        <div class="nav-label">Профиль</div>
+        <div class="nav-sublabel">Мои данные</div>
+      </div>
+      <div class="nav-card materials">
+        <span class="nav-icon">📊</span>
+        <div class="nav-label">Статистика</div>
+        <div class="nav-sublabel">Успеваемость</div>
+      </div>
+      <div class="nav-card schedule">
+        <span class="nav-icon">⚙️</span>
+        <div class="nav-label">Настройки</div>
+        <div class="nav-sublabel">Системные</div>
+      </div>
+    </div>
+
+    <button class="logout" onclick="logout()">
+      🚪 Выйти из аккаунта
+    </button>
+  </div>
+
+  <script src="api.js"></script>
+  <script>
+    const token = localStorage.getItem("token");
+    const userId = localStorage.getItem("userId");
+    const userRole = localStorage.getItem("userRole");
+
+    if (!token || userRole !== 'admin') {
+      window.location.href = "login.html";
+    }
+
+    function navigateTo(page) {
+      window.location.href = page;
+    }
+
+    async function loadStats() {
+      try {
+        const userRes = await fetch(`${BASE_URL}/api/users/${userId}`, {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        if (userRes.ok) {
+          const user = await userRes.json();
+          document.getElementById("userName").textContent = user.ФИО || 'Администратор';
+          document.getElementById("userEmail").textContent = user.email || '';
+          if (user.ФИО) {
+            const initials = user.ФИО.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+            document.getElementById("avatar").textContent = initials || '👑';
+          }
+        }
+
+        const [usersRes, coursesRes] = await Promise.all([
+          fetch(`${BASE_URL}/api/users`),
+          fetch(`${BASE_URL}/api/courses`)
+        ]);
+        const users = await usersRes.json();
+        const courses = await coursesRes.json();
+
+        document.getElementById("totalUsers").textContent = users.length;
+        document.getElementById("totalTeachers").textContent = users.filter(u => u.Роль === 'teacher').length;
+        document.getElementById("totalStudents").textContent = users.filter(u => u.Роль === 'student').length;
+        document.getElementById("totalCourses").textContent = courses.length;
+
+      } catch (err) {
+        console.log('Error:', err);
+      }
+    }
+
+    loadStats();
+
+    function logout() {
+      localStorage.removeItem("token");
+      localStorage.removeItem("userId");
+      localStorage.removeItem("userRole");
+      window.location.href = "login.html";
+    }
+  </script>
+</body>
+</html>

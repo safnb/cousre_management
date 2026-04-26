@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Мои курсы | Преподаватель</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h2>📚 Управление курсами</h2>
+    <p class="welcome-text">Создание и редактирование курсов</p>
+
+    <!-- Форма создания курса -->
+    <div style="background:#F8F9FA;border-radius:18px;padding:25px;margin-bottom:25px;">
+      <h3 style="margin-bottom:15px;font-size:16px;">➕ Создать новый курс</h3>
+      <div class="input-group">
+        <input id="courseName" type="text" placeholder="Название курса" style="padding-left:16px;">
+      </div>
+      <div class="input-group">
+        <input id="courseDesc" type="text" placeholder="Описание курса" style="padding-left:16px;">
+      </div>
+      <button onclick="createCourse()" id="createBtn" style="background:linear-gradient(135deg, #00b894, #00C9A7);">
+        <span id="createBtnText">Создать курс</span>
+      </button>
+    </div>
+
+    <div id="coursesList"></div>
+
+    <button class="back-btn" onclick="window.location.href='teacher.html'" style="margin-top:20px;">
+      ← В кабинет
+    </button>
+  </div>
+
+  <script src="api.js"></script>
+  <script>
+    const token = localStorage.getItem("token");
+    const userId = localStorage.getItem("userId");
+    if (!token || localStorage.getItem("userRole") !== 'teacher') window.location.href = "login.html";
+
+    function showToast(msg, type) {
+      const t = document.createElement('div');
+      t.className = `toast ${type}`;
+      t.textContent = msg;
+      document.body.appendChild(t);
+      setTimeout(() => t.remove(), 3000);
+    }
+
+    async function createCourse() {
+      const name = document.getElementById("courseName").value.trim();
+      const desc = document.getElementById("courseDesc").value.trim();
+      if (!name) { showToast('Введите название', 'error'); return; }
+
+      document.getElementById("createBtnText").innerHTML = '<div class="spinner"></div>';
+      document.getElementById("createBtn").disabled = true;
+
+      try {
+        const res = await fetch(`${BASE_URL}/api/courses`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ Название: name, Описание: desc, ID_студента: parseInt(userId) })
+        });
+        if (res.ok) {
+          showToast('✅ Курс создан!', 'success');
+          document.getElementById("courseName").value = '';
+          document.getElementById("courseDesc").value = '';
+          loadCourses();
+        }
+      } catch (e) { showToast('❌ Ошибка', 'error'); }
+      finally {
+        document.getElementById("createBtnText").textContent = 'Создать курс';
+        document.getElementById("createBtn").disabled = false;
+      }
+    }
+
+    async function deleteCourse(id) {
+      if (!confirm('Удалить курс?')) return;
+      try {
+        await fetch(`${BASE_URL}/api/courses/${id}`, { method: "DELETE" });
+        showToast('🗑️ Курс удалён', 'success');
+        loadCourses();
+      } catch (e) { showToast('❌ Ошибка', 'error'); }
+    }
+
+    async function loadCourses() {
+      const list = document.getElementById("coursesList");
+      try {
+        const res = await fetch(`${BASE_URL}/api/courses`);
+        const allCourses = await res.json();
+        const myCourses = allCourses.filter(c => c.ID_студента == userId);
+
+        if (myCourses.length === 0) {
+          list.innerHTML = '<div class="empty-state"><span class="empty-icon">📭</span><h3>У вас пока нет курсов</h3></div>';
+          return;
+        }
+
+        list.innerHTML = myCourses.map(c => `
+          <div class="course-card">
+            <div class="course-title">📚 ${c.Название || 'Без названия'}</div>
+            <div class="course-desc">${c.Описание || 'Нет описания'}</div>
+            <div class="info-tags">
+              <span class="info-tag">ID: ${c.ID_курса}</span>
+              <span class="badge badge-success">Активен</span>
+            </div>
+            <button onclick="deleteCourse(${c.ID_курса})" style="width:auto;margin-top:10px;background:linear-gradient(135deg, #e17055, #d63031);font-size:13px;padding:8px 18px;">
+              🗑️ Удалить
+            </button>
+          </div>
+        `).join('');
+      } catch (e) {
+        list.innerHTML = '<div class="empty-state"><span class="empty-icon">⚠️</span><h3>Ошибка загрузки</h3></div>';
+      }
+    }
+
+    loadCourses();
+  </script>
+</body>
+</html>

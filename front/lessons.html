@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Мои занятия | Course Management</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h2>📅 Мои занятия</h2>
+    <p class="welcome-text">Ваше расписание и темы занятий</p>
+
+    <div id="lessonsList"></div>
+
+    <button class="back-btn" onclick="window.location.href='home.html'" style="margin-top:20px;">
+      ← На главную
+    </button>
+  </div>
+
+  <script src="api.js"></script>
+  <script>
+    const token = localStorage.getItem("token");
+    const userId = localStorage.getItem("userId");
+    if (!token) window.location.href = "login.html";
+
+    async function loadLessons() {
+      const list = document.getElementById("lessonsList");
+      try {
+        const lessons = await getStudentLessons(userId, token);
+        
+        if (!lessons || lessons.length === 0) {
+          list.innerHTML = `
+            <div class="empty-state">
+              <span class="empty-icon">📅</span>
+              <h3>У вас пока нет занятий</h3>
+              <p>Запишитесь на курс, чтобы увидеть расписание</p>
+            </div>`;
+          return;
+        }
+
+        // Сортируем по дате
+        lessons.sort((a, b) => {
+          const dateA = new Date(a.Дата_и_время || a.дата_и_время || 0);
+          const dateB = new Date(b.Дата_и_время || b.дата_и_время || 0);
+          return dateB - dateA;
+        });
+
+        list.innerHTML = `
+          <p style="margin-bottom:15px;color:var(--gray);">Всего занятий: <strong>${lessons.length}</strong></p>
+          ${lessons.map(lesson => {
+            const date = lesson.Дата_и_время || lesson.дата_и_время;
+            const formattedDate = date ? new Date(date).toLocaleString('ru-RU', {
+              weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
+            }) : 'Дата не указана';
+            
+            return `
+              <div class="lesson-card">
+                <div class="lesson-topic">📌 ${lesson.тема || 'Тема не указана'}</div>
+                <div class="lesson-date">🕐 ${formattedDate}</div>
+                <div class="info-tags">
+                  <span class="info-tag">📖 Курс ID: ${lesson.i_d_курса || lesson.ID_курса || '—'}</span>
+                  <span class="info-tag">🔢 Занятие №${lesson.i_d_занятия || lesson.ID_занятия || '—'}</span>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        `;
+      } catch (err) {
+        list.innerHTML = `<div class="empty-state"><span class="empty-icon">⚠️</span><h3>Ошибка</h3><p>Не удалось загрузить занятия</p></div>`;
+      }
+    }
+    loadLessons();
+  </script>
+</body>
+</html>

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Все курсы | Админ</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .danger-btn {
+      background: linear-gradient(135deg, #e17055, #d63031) !important;
+      width: auto !important;
+      padding: 8px 16px !important;
+      font-size: 13px !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>📚 Все курсы</h2>
+    <p class="welcome-text">Управление всеми курсами системы</p>
+    <div id="coursesList"></div>
+    <button class="back-btn" onclick="window.location.href='admin.html'" style="margin-top:20px;">← Назад</button>
+  </div>
+
+  <script src="api.js"></script>
+  <script>
+    const token = localStorage.getItem("token");
+    if (!token || localStorage.getItem("userRole") !== 'admin') window.location.href = "login.html";
+
+    function showToast(msg, type) {
+      const t = document.createElement('div');
+      t.className = `toast ${type}`;
+      t.textContent = msg;
+      document.body.appendChild(t);
+      setTimeout(() => t.remove(), 3000);
+    }
+
+    async function deleteCourse(id) {
+      if (!confirm('Удалить курс?')) return;
+      await fetch(`${BASE_URL}/api/courses/${id}`, { method: "DELETE" });
+      showToast('🗑️ Курс удалён', 'success');
+      loadCourses();
+    }
+
+    async function loadCourses() {
+      const res = await fetch(`${BASE_URL}/api/courses`);
+      const courses = await res.json();
+      const list = document.getElementById("coursesList");
+      
+      if (courses.length === 0) {
+        list.innerHTML = '<div class="empty-state"><span class="empty-icon">📭</span><h3>Нет курсов</h3></div>';
+        return;
+      }
+
+      list.innerHTML = courses.map(c => `
+        <div class="course-card">
+          <div class="course-title">📚 ${c.Название || 'Без названия'}</div>
+          <div class="course-desc">${c.Описание || 'Нет описания'}</div>
+          <div class="info-tags">
+            <span class="info-tag">ID: ${c.ID_курса}</span>
+            <span class="info-tag">Преподаватель ID: ${c.ID_студента}</span>
+          </div>
+          <button class="danger-btn" onclick="deleteCourse(${c.ID_курса})">🗑️ Удалить</button>
+        </div>
+      `).join('');
+    }
+
+    loadCourses();
+  </script>
+</body>
+</html>

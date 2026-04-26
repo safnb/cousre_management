@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Пользователи | Админ</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .danger-btn {
+      background: linear-gradient(135deg, #e17055, #d63031) !important;
+      width: auto !important;
+      padding: 8px 16px !important;
+      font-size: 13px !important;
+      margin-top: 8px;
+    }
+    .create-form {
+      background: #F8F9FA;
+      border-radius: 18px;
+      padding: 25px;
+      margin-bottom: 25px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>👥 Все пользователи</h2>
+    <p class="welcome-text">Управление аккаунтами</p>
+
+    <div class="create-form">
+      <h3 style="margin-bottom:15px;">➕ Создать преподавателя</h3>
+      <div class="input-group"><input id="tFio" type="text" placeholder="ФИО" style="padding-left:16px;"></div>
+      <div class="input-group"><input id="tEmail" type="email" placeholder="Email" style="padding-left:16px;"></div>
+      <div class="input-group"><input id="tPass" type="password" placeholder="Пароль" style="padding-left:16px;"></div>
+      <div class="input-group"><input id="tPhone" type="text" placeholder="Телефон" style="padding-left:16px;"></div>
+      <button onclick="createTeacher()" style="background:linear-gradient(135deg, #f39c12, #e67e22);">Создать преподавателя</button>
+    </div>
+
+    <h3 style="margin-bottom:15px;">📋 Список пользователей</h3>
+    <div id="usersList"></div>
+    
+    <button class="back-btn" onclick="window.location.href='admin.html'" style="margin-top:20px;">← Назад</button>
+  </div>
+
+  <script src="api.js"></script>
+  <script>
+    const token = localStorage.getItem("token");
+    if (!token || localStorage.getItem("userRole") !== 'admin') window.location.href = "login.html";
+
+    function showToast(msg, type) {
+      const t = document.createElement('div');
+      t.className = `toast ${type}`;
+      t.textContent = msg;
+      document.body.appendChild(t);
+      setTimeout(() => t.remove(), 3000);
+    }
+
+    async function createTeacher() {
+      const fio = document.getElementById("tFio").value.trim();
+      const email = document.getElementById("tEmail").value.trim();
+      const pass = document.getElementById("tPass").value.trim();
+      const phone = document.getElementById("tPhone").value.trim();
+      if (!fio || !email || !pass || !phone) { showToast('Заполните все поля', 'error'); return; }
+
+      try {
+        await fetch(`${BASE_URL}/api/users`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ФИО: fio, email, password: pass, Дата_Рождения: "1980-01-01", Класс: 0, Телефон: phone, Роль: 'teacher' })
+        });
+        showToast('✅ Преподаватель создан!', 'success');
+        document.getElementById("tFio").value = '';
+        document.getElementById("tEmail").value = '';
+        document.getElementById("tPass").value = '';
+        document.getElementById("tPhone").value = '';
+        loadUsers();
+      } catch (e) { showToast('❌ Ошибка', 'error'); }
+    }
+
+    async function deleteUser(id) {
+      if (!confirm('Точно удалить пользователя?')) return;
+      try {
+        await fetch(`${BASE_URL}/api/users/${id}`, { method: "DELETE" });
+        showToast('🗑️ Удалён', 'success');
+        loadUsers();
+      } catch (e) { showToast('❌ Ошибка', 'error'); }
+    }
+
+    async function loadUsers() {
+      const res = await fetch(`${BASE_URL}/api/users`);
+      const users = await res.json();
+      const list = document.getElementById("usersList");
+      
+      list.innerHTML = users.map(u => `
+        <div class="course-card" style="border-left-color:${u.Роль === 'admin' ? '#f39c12' : u.Роль === 'teacher' ? '#FF6584' : '#6C63FF'};">
+          <div class="course-title">${u.Роль === 'admin' ? '👑' : u.Роль === 'teacher' ? '👩‍🏫' : '👨‍🎓'} ${u.ФИО}</div>
+          <div class="course-desc">📧 ${u.email} | 📱 ${u.Телефон} | 🏫 ${u.Класс} класс</div>
+          <span class="badge ${u.Роль === 'admin' ? 'badge-warning' : u.Роль === 'teacher' ? 'badge-info' : 'badge-success'}">${u.Роль}</span>
+          ${u.Роль !== 'admin' ? `<button class="danger-btn" onclick="deleteUser(${u.ID_студента})">🗑️ Удалить</button>` : ''}
+        </div>
+      `).join('');
+    }
+
+    loadUsers();
+  </script>
+</body>
+</html>

@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Оценки | Преподаватель</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h2>⭐ Выставить оценку</h2>
+    <p class="welcome-text">Оценивание студентов</p>
+
+    <div style="background:#F8F9FA;border-radius:18px;padding:25px;margin-bottom:25px;">
+      <div class="input-group">
+        <select id="gradeStudent" style="width:100%;padding:14px 16px;border:2px solid #E0E0E0;border-radius:12px;font-family:'Poppins',sans-serif;font-size:15px;">
+          <option value="">Выберите студента</option>
+        </select>
+      </div>
+      <div class="input-group">
+        <select id="gradeLesson" style="width:100%;padding:14px 16px;border:2px solid #E0E0E0;border-radius:12px;font-family:'Poppins',sans-serif;font-size:15px;">
+          <option value="">Выберите занятие</option>
+        </select>
+      </div>
+      <div class="input-group"><input id="gradeType" type="text" placeholder="Тип оценки (Контрольная, ДЗ...)" style="padding-left:16px;"></div>
+      <div class="input-group"><input id="gradeValue" type="number" placeholder="Оценка (2-5)" min="2" max="5" style="padding-left:16px;"></div>
+      <button onclick="giveGrade()" style="background:linear-gradient(135deg, #6C63FF, #a29bfe);">⭐ Выставить</button>
+    </div>
+
+    <div id="gradesList"></div>
+    <button class="back-btn" onclick="window.location.href='teacher.html'" style="margin-top:20px;">← В кабинет</button>
+  </div>
+
+  <script src="api.js"></script>
+  <script>
+    const token = localStorage.getItem("token");
+    const userId = localStorage.getItem("userId");
+    if (!token || localStorage.getItem("userRole") !== 'teacher') window.location.href = "login.html";
+
+    function showToast(msg, type) {
+      const t = document.createElement('div');
+      t.className = `toast ${type}`;
+      t.textContent = msg;
+      document.body.appendChild(t);
+      setTimeout(() => t.remove(), 3000);
+    }
+
+    async function loadData() {
+      try {
+        const [usersRes, lessonsRes, gradesRes] = await Promise.all([
+          fetch(`${BASE_URL}/api/users`),
+          fetch(`${BASE_URL}/api/lessons`),
+          fetch(`${BASE_URL}/api/grades`)
+        ]);
+        
+        const users = await usersRes.json();
+        const lessons = await lessonsRes.json();
+        const grades = await gradesRes.json();
+
+        // Студенты (только role=student)
+        const students = users.filter(u => u.Роль === 'student');
+        const studentSel = document.getElementById("gradeStudent");
+        studentSel.innerHTML = '<option value="">Выберите студента</option>' + 
+          students.map(u => `<option value="${u.ID_студента}">${u.ФИО} (ID:${u.ID_студента})</option>`).join('');
+
+        // Занятия этого преподавателя
+        const myLessons = lessons.filter(l => l.ID_студента == userId);
+        const lessonSel = document.getElementById("gradeLesson");
+        lessonSel.innerHTML = '<option value="">Выберите занятие</option>' + 
+          myLessons.map(l => `<option value="${l.ID_занятия}">${l.Тема} (ID:${l.ID_занятия})</option>`).join('');
+
+        // Показать последние оценки
+        const list = document.getElementById("gradesList");
+        if (grades.length === 0) {
+          list.innerHTML = '<div class="empty-state"><span class="empty-icon">📝</span><h3>Нет оценок</h3></div>';
+        } else {
+          list.innerHTML = '<h3 style="margin-bottom:15px;">📋 Последние оценки</h3>' + 
+            grades.slice(-10).reverse().map(g => `
+              <div class="grade-card">
+                <div class="grade-circle grade-${g.Оценка >= 5 ? '5' : g.Оценка >= 4 ? '4' : g.Оценка >= 3 ? '3' : '2'}">${g.Оценка}</div>
+                <div class="grade-info">
+                  <div class="grade-type">${g.Тип_оценки}</div>
+                  <div class="grade-meta">Студент ID: ${g.ID_студента} | Занятие ID: ${g.ID_занятия}</div>
+                </div>
+              </div>
+            `).join('');
+        }
+      } catch (err) {
+        console.error('Load error:', err);
+      }
+    }
+
+    async function giveGrade() {
+      const student = document.getElementById("gradeStudent").value;
+      const lesson = document.getElementById("gradeLesson").value;
+      const type = document.getElementById("gradeType").value.trim();
+      const value = document.getElementById("gradeValue").value;
+      
+      console.log('Отправка:', { student, lesson, type, value });
+      
+      if (!student || !lesson || !type || !value) { 
+        showToast('❌ Заполните все поля!', 'error'); 
+        return; 
+      }
+
+      try {
+        const res = await fetch(`${BASE_URL}/api/grades`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ 
+            Оценка: parseInt(value), 
+            Тип_оценки: type, 
+            ID_студента: parseInt(student), 
+            ID_занятия: parseInt(lesson) 
+          })
+        });
+        
+        if (res.ok) {
+          showToast('✅ Оценка выставлена!', 'success');
+          document.getElementById("gradeType").value = '';
+          document.getElementById("gradeValue").value = '';
+          loadData();
+        } else {
+          const err = await res.json();
+          showToast('❌ ' + (err.message || 'Ошибка сервера'), 'error');
+        }
+      } catch (e) { 
+        showToast('❌ Ошибка сервера', 'error'); 
+      }
+    }
+
+    loadData();
+  </script>
+</body>
+</html>

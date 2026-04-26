@@ -1,10 +1,10 @@
 module.exports = {
-  HOST: "postgresdb",
-  USER: "postgres",        
-  PASSWORD: "123456",  
-  DB: "tradeDB",          
+  HOST: "localhost",
+  USER: "postgres",
+  PASSWORD: "123456",
+  DB: "tradeDB",       
   dialect: "postgres",
-  port: 5432,
+  port: 5433,           
   pool: {
     max: 5,
     min: 0,

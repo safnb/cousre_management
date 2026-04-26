@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Вход | Course Management</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h2>С возвращением!</h2>
+    <p class="welcome-text">Войдите в свой аккаунт</p>
+
+    <!-- Скрытая форма против автозаполнения -->
+    <form autocomplete="off" style="display:none;">
+      <input type="text" name="fake" autocomplete="off">
+      <input type="password" name="fake-pass" autocomplete="off">
+    </form>
+
+    <div class="input-group">
+      <span class="icon">✉️</span>
+      <input id="email" type="email" placeholder="Email" autocomplete="off" name="email-login">
+    </div>
+
+    <div class="input-group">
+      <span class="icon">🔒</span>
+      <input id="password" type="password" placeholder="Пароль" autocomplete="off" name="password-login">
+    </div>
+
+    <button onclick="handleLogin()" id="loginBtn">
+      <span id="btnText">Войти</span>
+    </button>
+
+    <p>Нет аккаунта? <a href="register.html">Зарегистрироваться</a></p>
+  </div>
+
+  <script src="api.js"></script>
+  <script>
+    function showToast(message, type = 'success') {
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+    }
+
+    async function handleLogin() {
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value.trim();
+      const btn = document.getElementById("loginBtn");
+      const btnText = document.getElementById("btnText");
+
+      if (!email || !password) {
+        showToast('Заполните все поля', 'error');
+        return;
+      }
+
+      btnText.innerHTML = '<div class="spinner"></div>';
+      btn.disabled = true;
+
+      try {
+        const res = await login(email, password);
+        
+        if (res.token) {
+          // Сохраняем в localStorage
+          localStorage.setItem("token", res.token);
+          localStorage.setItem("userId", res.id);
+          localStorage.setItem("userRole", res.role);
+          
+          showToast('✅ Вход выполнен успешно!', 'success');
+          
+          // Перенаправление по роли
+          setTimeout(() => {
+            if (res.role === 'teacher') {
+              window.location.href = "teacher.html";
+            } else if (res.role === 'admin') {
+              window.location.href = "admin.html";
+            } else {
+              window.location.href = "home.html";
+            }
+          }, 800);
+        } else {
+          showToast('❌ Неверный email или пароль', 'error');
+        }
+      } catch (err) {
+        showToast('❌ Ошибка сервера', 'error');
+      } finally {
+        btnText.textContent = 'Войти';
+        btn.disabled = false;
+      }
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') handleLogin();
+    });
+  </script>
+</body>
+</html>

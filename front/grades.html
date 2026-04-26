@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Мои оценки | Course Management</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h2>⭐ Мои оценки</h2>
+    <p class="welcome-text">Ваша успеваемость по предметам</p>
+
+    <div id="averageBlock"></div>
+    <div class="stats-grid" id="gradeStats" style="margin-bottom:20px;"></div>
+    <div id="gradesList"></div>
+
+    <button class="back-btn" onclick="window.location.href='home.html'" style="margin-top:20px;">
+      ← На главную
+    </button>
+  </div>
+
+  <script src="api.js"></script>
+  <script>
+    const token = localStorage.getItem("token");
+    const userId = localStorage.getItem("userId");
+    if (!token) window.location.href = "login.html";
+
+    function getGradeValue(g) {
+      return Number(g.Оценка || g.оценка || 0);
+    }
+
+    function getGradeType(g) {
+      return g.Тип_оценки || g.тип_оценки || 'Без типа';
+    }
+
+    function getStudentId(g) {
+      return g.ID_студента || g.i_d_студента || '—';
+    }
+
+    function getLessonId(g) {
+      return g.ID_занятия || g.i_d_занятия || '—';
+    }
+
+    async function loadGrades() {
+      const list = document.getElementById("gradesList");
+      const avgBlock = document.getElementById("averageBlock");
+      const statsBlock = document.getElementById("gradeStats");
+      
+      try {
+        const grades = await getStudentGrades(userId, token);
+        
+        if (!grades || grades.length === 0) {
+          avgBlock.innerHTML = '';
+          statsBlock.innerHTML = '';
+          list.innerHTML = `<div class="empty-state"><span class="empty-icon">📝</span><h3>Нет оценок</h3><p>Оценки пока не выставлены</p></div>`;
+          return;
+        }
+
+        const avg = grades.reduce((sum, g) => sum + getGradeValue(g), 0) / grades.length;
+        avgBlock.innerHTML = `
+          <div class="average-banner">
+            <div class="average-number">${avg.toFixed(1)}</div>
+            <div class="average-label">Средний балл (всего оценок: ${grades.length})</div>
+          </div>`;
+
+        const count5 = grades.filter(g => getGradeValue(g) >= 5).length;
+        const count4 = grades.filter(g => getGradeValue(g) >= 4 && getGradeValue(g) < 5).length;
+        const count3 = grades.filter(g => getGradeValue(g) >= 3 && getGradeValue(g) < 4).length;
+        const count2 = grades.filter(g => getGradeValue(g) < 3).length;
+        
+        statsBlock.innerHTML = `
+          <div class="stat-card purple">
+            <div class="stat-number">${count5}</div>
+            <div class="stat-label">Отлично (5)</div>
+          </div>
+          <div class="stat-card pink">
+            <div class="stat-number">${count4}</div>
+            <div class="stat-label">Хорошо (4)</div>
+          </div>
+          <div class="stat-card orange">
+            <div class="stat-number">${count3}</div>
+            <div class="stat-label">Удовл. (3)</div>
+          </div>
+          <div class="stat-card" style="background:linear-gradient(135deg, #e17055, #d63031);">
+            <div class="stat-number">${count2}</div>
+            <div class="stat-label">Ниже (2)</div>
+          </div>
+        `;
+
+        list.innerHTML = grades.map(grade => {
+          const value = getGradeValue(grade);
+          const gradeClass = value >= 5 ? 'grade-5' : value >= 4 ? 'grade-4' : value >= 3 ? 'grade-3' : 'grade-2';
+          
+          return `
+            <div class="grade-card">
+              <div class="grade-circle ${gradeClass}">${value}</div>
+              <div class="grade-info">
+                <div class="grade-type">📋 ${getGradeType(grade)}</div>
+                <div class="grade-meta">
+                  📖 Занятие ID: ${getLessonId(grade)} | 👤 Студент ID: ${getStudentId(grade)}
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      } catch (err) {
+        list.innerHTML = `<div class="empty-state"><span class="empty-icon">⚠️</span><h3>Ошибка</h3><p>Не удалось загрузить оценки</p></div>`;
+      }
+    }
+    loadGrades();
+  </script>
+</body>
+</html>
