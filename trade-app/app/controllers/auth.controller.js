@@ -10,7 +10,7 @@ exports.login = async (req, res) => {
     });
 
     if (!user) {
-      return res.status(404).send({ message: "User not found" });
+      return res.status(404).json({ message: "User not found" });
     }
 
     const passwordIsValid = bcrypt.compareSync(
@@ -19,7 +19,7 @@ exports.login = async (req, res) => {
     );
 
     if (!passwordIsValid) {
-      return res.status(401).send({ message: "Wrong password" });
+      return res.status(401).json({ message: "Wrong password" });
     }
 
     const token = jwt.sign(
@@ -28,7 +28,8 @@ exports.login = async (req, res) => {
       { expiresIn: "24h" }
     );
 
-    res.send({
+    // Всегда возвращаем JSON (и для основной формы, и для скрытой)
+    res.json({
       id: user.ID_студента,
       email: user.email,
       role: user.Роль,
@@ -36,6 +37,6 @@ exports.login = async (req, res) => {
     });
 
   } catch (err) {
-    res.status(500).send({ message: err.message });
+    res.status(500).json({ message: err.message });
   }
 };

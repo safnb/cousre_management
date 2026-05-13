@@ -3,11 +3,13 @@ module.exports = (sequelize, Sequelize) => {
     ID_студента: {
       type: Sequelize.INTEGER,
       primaryKey: true,
-      autoIncrement: true
+      autoIncrement: true,
+      field: 'ID_студента'           
     },
     ФИО: {
       type: Sequelize.STRING(45),
-      allowNull: false
+      allowNull: false,
+      field: 'ФИО'                  
     },
     email: {
       type: Sequelize.STRING,
@@ -20,19 +22,23 @@ module.exports = (sequelize, Sequelize) => {
     },
     Дата_Рождения: {
       type: Sequelize.DATE,
-      allowNull: false
+      allowNull: false,
+      field: 'Дата_Рождения'       
     },
     Класс: {
       type: Sequelize.INTEGER,
-      allowNull: false
+      allowNull: false,
+      field: 'Класс'               
     },
     Телефон: {
       type: Sequelize.STRING(10),
-      allowNull: false
+      allowNull: false,
+      field: 'Телефон'               
     },
     Роль: {
       type: Sequelize.ENUM('student', 'teacher', 'admin'),
-      defaultValue: 'student'
+      defaultValue: 'student',
+      field: 'Роль'                  
     }
   }, {
     tableName: 'пользователи',
